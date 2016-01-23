@@ -51,6 +51,7 @@ import (
 )
 
 const (
+	keyCORS       = "{luit.eu/comments}:cors"
 	keyAutoEnable = "{luit.eu/comments}:auto_enable"
 	keyEnabled    = "{luit.eu/comments://%s%s}:enabled"
 	keyAll        = "{luit.eu/comments://%s%s}:all"
@@ -84,6 +85,14 @@ func init() {
 	http.HandleFunc("/comments/", commentHandler)
 }
 
+func getCORS(conn redis.Conn) (string, error) {
+	cors, err := redis.String(conn.Do("GET", keyCORS))
+	if err == redis.ErrNil {
+		return "*", nil
+	}
+	return cors, err
+}
+
 func commentHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
@@ -99,12 +108,17 @@ func commentHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		conn := pool.Get()
 		defer conn.Close()
+		cors, err := getCORS(conn)
+		if err != nil {
+			http.Error(w, "backend error", http.StatusInternalServerError)
+		}
 		comments, err := getComments(conn, u.Host, u.Path)
 		if err != nil {
 			http.Error(w, "backend error", http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", cors)
 		e := json.NewEncoder(w)
 		e.Encode(comments)
 	case "POST":
