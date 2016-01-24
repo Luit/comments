@@ -37,7 +37,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html"
 	"io/ioutil"
 	"log"
 	"net"
@@ -248,8 +247,8 @@ func getComments(conn redis.Conn, host, path string) ([]comment, error) {
 			return nil, err
 		}
 		c.ID = id
-		c.Author = html.EscapeString(c.Author)
-		c.Content = html.EscapeString(c.Content)
+		c.Author = c.Author
+		c.Content = c.Content
 		comments = append(comments, c)
 	}
 	return comments, nil
